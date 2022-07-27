@@ -44,10 +44,10 @@ router.route("/cart-history").get(verifyAdmin,cart.historyUsers)
 router.route("/cart-history-per-user/:id").get(verifyJwt,cart.historyUser)
 
 //order
-router.route("/order-add").post(verifyJwt,order.add)
+router.route("/order-add").post(upload.any('photo'),order.add)
 router.route("/orders/list").get(verifyAdmin,order.list)
 router.route("/order/:id").get(verifyJwt,order.orderOne)
-router.route("/order-update/:id").put( verifyAdmin,order.update)
+router.route("/order-update/:id").put( upload.any('photo'),order.update)
 router.route("/order-delete/:id").delete(verifyAdmin,order.delete)
 
 router.route("/order-payment/:id").put(upload.any('photo'),order.payment)

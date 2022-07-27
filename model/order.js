@@ -14,7 +14,7 @@ const cartSchema = new moongose.Schema({
             }
         }
     ],
-    buktiPayment :{type:String,default:null },
+    buktiPayment :{type:String,required: true },
     amount: {type: Number, required: true},
     address: {type:Object, required:true},
     status: {type:Number, default:0}

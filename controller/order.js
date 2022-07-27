@@ -8,8 +8,29 @@ dotenv.config()
 
 exports.add = async (req, res, next) => {
     try {
-        const OrderAdd = new Order(req.body)
+
+        const uploadCloudinary = await cloudinary.uploader.upload(req.files[0].path)
+
+        let obj = {}
+        obj.userId = req.body.userId
+
+        let products = []
+
+        req.body.products.map((length, index) => {
+            let objCategories = {}
+            objCategories.categoryId = length.categoryId,
+                objCategories.quantity = length.quantity
+            products.push(objCategories)
+        })
+
+        let result = { ...obj, products: products }
+        result.buktiPayment = uploadCloudinary.secure_url
+        result.amount = req.body.amount
+        result.address = req.body.address
+
+        const OrderAdd = new Order(result)
         const add = await OrderAdd.save()
+
         res.status(201).json({
             message: "Success to add Order",
             status: 201
@@ -200,8 +221,27 @@ exports.orderOne = async (req, res, next) => {
 
 exports.update = async (req, res, next) => {
     try {
+        const uploadCloudinary = await cloudinary.uploader.upload(req.files[0].path)
+
+        let obj = {}
+        obj.userId = req.body.userId
+
+        let products = []
+
+        req.body.products.map((length, index) => {
+            let objCategories = {}
+            objCategories.categoryId = length.categoryId,
+                objCategories.quantity = length.quantity
+            products.push(objCategories)
+        })
+
+        let result = { ...obj, products: products }
+        result.buktiPayment = uploadCloudinary.secure_url
+        result.amount = req.body.amount
+        result.address = req.body.address
+      
         const update = await Order.findByIdAndUpdate(req.params.id, {
-            $set: req.body
+            $set: result
         })
         res.status(200).json({
             status: 200,
@@ -320,15 +360,15 @@ exports.historyOrder = async (req, res, next) => {
                         email: "$_id.email"
                     },
                     amountTotal: { $sum: "$_id.amount" },
-                    "history": { $push: "$history.item.categories"} 
+                    "history": { $push: "$history.item.categories" }
                 }
             },
             {
-                $project:{
-                    "_id.userId":1,
-                    "_id.username":1,
-                    "_id.email":1,
-                    "amountTotal":1,
+                $project: {
+                    "_id.userId": 1,
+                    "_id.username": 1,
+                    "_id.email": 1,
+                    "amountTotal": 1,
                     "data": {
                         $reduce: {
                             "input": "$history",
@@ -338,7 +378,7 @@ exports.historyOrder = async (req, res, next) => {
                     }
                 }
             }
-        
+
         ]) : await Order.aggregate([
             {
                 $lookup: {
@@ -395,15 +435,15 @@ exports.historyOrder = async (req, res, next) => {
                         email: "$_id.email"
                     },
                     amountTotal: { $sum: "$_id.amount" },
-                    "history": { $push: "$history.item.categories"} 
+                    "history": { $push: "$history.item.categories" }
                 }
             },
             {
-                $project:{
-                    "_id.userId":1,
-                    "_id.username":1,
-                    "_id.email":1,
-                    "amountTotal":1,
+                $project: {
+                    "_id.userId": 1,
+                    "_id.username": 1,
+                    "_id.email": 1,
+                    "amountTotal": 1,
                     "data": {
                         $reduce: {
                             "input": "$history",

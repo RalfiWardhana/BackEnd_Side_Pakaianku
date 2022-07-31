@@ -219,6 +219,65 @@ exports.cartOne = async (req, res, next) => {
     }
 }
 
+exports.cartValidation = async (req, res, next) => {
+    try {
+        const cart = await Cart.aggregate([
+            {
+                $lookup: {
+                    from: "users",
+                    let: { "userObjId": { "$toObjectId": "$userId" } },
+                    pipeline: [
+                        { $match: { $expr: { $eq: ["$_id", "$$userObjId"] } } },
+                        { $project: { "username": 1, "email": 1 } }
+                    ],
+                    as: "dataUser",
+                }
+            },
+            { $unwind: "$dataUser" },
+            { $unwind: "$products" },
+            {
+                $lookup: {
+                    "from": "products",
+                    "let": { "productId": { "$toObjectId": "$products.categoryId" } },
+                    "pipeline": [
+                        { $unwind: "$categories" },
+                        { $match: { $expr: { $eq: ["$$productId", "$categories._id"] } } },
+                        { $project: { "categories": 1 } }
+                    ],
+                    "as": "item"
+                }
+            },
+            { $unwind: "$item" },
+            { $match: { "userId": req.query.userId, active:true } },
+            {
+                $group: {
+                    _id: {
+                        cart_id: "$_id",
+                        username: "$dataUser.username",
+                        email: "$dataUser.email",
+                        userId:"$userId"
+                    },
+                    item: {
+                        $push: {
+                            categories: "$item.categories",
+                            quantity: "$products.quantity"
+                        }
+                    }
+                }
+            }
+        ]
+        )
+        res.status(200).json({
+            data: cart,
+            status: 200,
+            message: 'Success find cart'
+        })
+    } catch (err) {
+        console.log(err)
+        return next(new CustomError('Something went wrong, please try again later!', 500))
+    }
+}
+
 exports.update = async (req, res, next) => {
     try {
         const update = await Cart.findByIdAndUpdate(req.params.id, {

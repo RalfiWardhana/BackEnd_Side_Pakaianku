@@ -37,11 +37,12 @@ router.route("/product-get-categories").get(verifyJwt,product.getCategories)
 router.route("/cart-add").post(verifyJwt,cart.add)
 router.route("/carts/list").get(verifyAdmin,cart.list)
 router.route("/cart/:id").get(verifyJwt, cart.cartOne)
+router.route("/cart-validation").get(verifyJwt,cart.cartValidation)
 router.route("/cart-update/:id").put(verifyJwt, cart.update)
 router.route("/cart-delete/:id").delete(verifyAdmin, cart.delete)
 
 router.route("/cart-product-increment-quantity").put(verifyJwt, cart.incQuantity)
-router.route("/cart-product-decrement-quantity").put(verifyJwt, cart.decQuantity)
+router.route("/cart-product-decrement-quantity").put(verifyJwt,cart.decQuantity)
 router.route("/cart-history").get(verifyAdmin,cart.historyUsers)
 router.route("/cart-history-per-user/:id").get(verifyJwt,cart.historyUser)
 

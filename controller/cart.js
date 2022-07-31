@@ -11,7 +11,7 @@ exports.add = async (req, res, next) => {
 
             let objCategories = {}
             objCategories.categoryId = req.body.products.categoryId,
-                objCategories.quantity = req.body.products.quantity
+            objCategories.quantity = req.body.products.quantity
             console.log(objCategories)
             const updateCart = await Cart.updateOne({
                 userId: req.body.userId, active: true
@@ -30,7 +30,7 @@ exports.add = async (req, res, next) => {
 
             let objCategories = {}
             objCategories.categoryId = req.body.products.categoryId,
-                objCategories.quantity = req.body.products.quantity
+            objCategories.quantity = req.body.products.quantity
             products.push(objCategories)
 
             let result = { ...obj, products: products }

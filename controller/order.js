@@ -31,6 +31,12 @@ exports.add = async (req, res, next) => {
         const OrderAdd = new Order(result)
         const add = await OrderAdd.save()
 
+        const updateFalse = await Cart.updateOne({ userId: req.body.userId, active: true },{
+            $set:{
+                active:false
+            }
+        })
+
         res.status(201).json({
             message: "Success to add Order",
             status: 201

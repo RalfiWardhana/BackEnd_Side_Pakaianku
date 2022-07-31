@@ -5,8 +5,38 @@ const { CustomError } = require('../helper/errorHandler')
 
 exports.add = async (req, res, next) => {
     try {
-        const cartAdd = new Cart(req.body)
-        const add = await cartAdd.save()
+        const userCart = await Cart.findOne({ userId: req.body.userId, active: true })
+        console.log(userCart.products)
+        if (userCart.products.length > 0) {
+
+            let objCategories = {}
+            objCategories.categoryId = req.body.products.categoryId,
+                objCategories.quantity = req.body.products.quantity
+            console.log(objCategories)
+            const updateCart = await Cart.updateOne({
+                userId: req.body.userId, active: true
+            }, {
+                $push: {
+                    products: objCategories
+                }
+            })
+        }
+        else {
+
+            let obj = {}
+            obj.userId = req.body.userId
+            obj.active = true
+            let products = []
+
+            let objCategories = {}
+            objCategories.categoryId = req.body.products.categoryId,
+                objCategories.quantity = req.body.products.quantity
+            products.push(objCategories)
+
+            let result = { ...obj, products: products }
+            const cartAdd = new Cart(result)
+            const add = await cartAdd.save()
+        }
         res.status(201).json({
             message: "Success to add cart",
             status: 201
@@ -68,7 +98,8 @@ exports.list = async (req, res, next) => {
                     },
                     item: {
                         $push: {
-                            categories: "$item.categories"
+                            categories: "$item.categories",
+                            quantity: "$products.quantity"
                         }
                     }
                 }
@@ -111,7 +142,8 @@ exports.list = async (req, res, next) => {
                     },
                     item: {
                         $push: {
-                            categories: "$item.categories"
+                            categories: "$item.categories",
+                            quantity: "$products.quantity"
                         }
                     }
                 }
@@ -167,7 +199,8 @@ exports.cartOne = async (req, res, next) => {
                     },
                     item: {
                         $push: {
-                            categories: "$item.categories"
+                            categories: "$item.categories",
+                            quantity: "$products.quantity"
                         }
                     }
                 }
@@ -213,6 +246,99 @@ exports.delete = async (req, res, next) => {
     }
 }
 
+exports.incQuantity = async (req, res, next) => {
+    try {
+        const lastCartId = await Cart.find({ userId: req.body.userId }).sort({ createdAt: -1 })
+
+        const updateQuantity = await Cart.updateOne({
+            _id: lastCartId[0]._id,
+            userId: req.body.userId,
+            active: true,
+            products: {
+                $elemMatch: {
+                    categoryId: req.body.products.categoryId
+                }
+            }
+        }
+            ,
+            {
+                $inc: {
+                    "products.$.quantity": 1
+                }
+            }
+        )
+        res.status(201).json({
+            message: "success to update quantity",
+            status: 201
+        })
+    } catch (err) {
+        console.log(err)
+        return next(new CustomError('Something went wrong, please try again later!', 500))
+    }
+}
+
+exports.decQuantity = async (req, res, next) => {
+    try {
+        const result = await Cart.aggregate([
+            { $unwind: "$products" },
+            {
+                $match: {
+                    "userId": req.body.userId,
+                    "products.categoryId": req.body.products.categoryId
+                }
+            },
+            { $sort: { createdAt: -1 } }
+        ])
+        const lastCartId = result[0]._id
+        const quantity = result[0].products.quantity
+
+        if (quantity == 1) {
+            const updateQuantity = await Cart.updateOne({
+                _id: lastCartId,
+                userId: req.body.userId,
+                active: true,
+                products: {
+                    $elemMatch: {
+                        categoryId: req.body.products.categoryId
+                    }
+                }
+            }
+                ,
+                {
+                    $pull: {
+                        products: { _id: result[0].products._id }
+                    }
+                }
+            )
+        }
+        else {
+            const updateQuantity = await Cart.updateOne({
+                _id: lastCartId,
+                userId: req.body.userId,
+                products: {
+                    $elemMatch: {
+                        categoryId: req.body.products.categoryId
+                    }
+                }
+            }
+                ,
+                {
+                    $inc: {
+                        "products.$.quantity": -1
+                    }
+                }
+            )
+        }
+        res.status(201).json({
+            message: "success to update quantity",
+            status: 201
+        })
+    } catch (err) {
+        console.log(err)
+        return next(new CustomError('Something went wrong, please try again later!', 500))
+    }
+}
+
 exports.historyUser = async (req, res, next) => {
     try {
         const history = await Cart.aggregate([
@@ -249,19 +375,11 @@ exports.historyUser = async (req, res, next) => {
                         username: "$dataUser.username",
                         email: "$dataUser.email",
                     },
-                    history: { $push: "$$ROOT" }
+                    history: { $push: { categories: "$item.categories", quantity: "$products.quantity" } }
                 }
             },
-            {
-                $project: {
-                    "_id.userId": 1,
-                    "_id.username": 1,
-                    "_id.email": 1,
-                    "history.item.categories": 1
-                }
-            },
-            {$match:{"_id.userId":req.params.id}}
-        ]) 
+            { $match: { "_id.userId": req.params.id } }
+        ])
         res.status(200).json({
             data: history,
             message: "success get history user",
@@ -309,18 +427,10 @@ exports.historyUsers = async (req, res, next) => {
                         username: "$dataUser.username",
                         email: "$dataUser.email",
                     },
-                    history: { $push: "$$ROOT" }
-                }
-            },
-            {
-                $project: {
-                    "_id.userId": 1,
-                    "_id.username": 1,
-                    "_id.email": 1,
-                    "history.item.categories": 1
+                    history: { $push: { categories: "$item.categories", quantity: "$products.quantity" } }
                 }
             }
-        ])  
+        ])
         res.status(200).json({
             data: history,
             message: "success get history many users",

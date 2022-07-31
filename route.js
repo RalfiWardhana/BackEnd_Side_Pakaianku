@@ -40,18 +40,21 @@ router.route("/cart/:id").get(verifyJwt, cart.cartOne)
 router.route("/cart-update/:id").put(verifyJwt, cart.update)
 router.route("/cart-delete/:id").delete(verifyAdmin, cart.delete)
 
+router.route("/cart-product-increment-quantity").put(verifyJwt, cart.incQuantity)
+router.route("/cart-product-decrement-quantity").put(verifyJwt, cart.decQuantity)
 router.route("/cart-history").get(verifyAdmin,cart.historyUsers)
 router.route("/cart-history-per-user/:id").get(verifyJwt,cart.historyUser)
 
 //order
 router.route("/order-add").post(verifyJwt,upload.any('photo'),order.add)
-router.route("/orders/list").get(verifyAdmin,order.list)
+router.route("/orders/list").get(verifyJwt,order.list)
 router.route("/order/:id").get(verifyJwt,order.orderOne)
 router.route("/order-update/:id").put(verifyAdmin,upload.any('photo'),order.update)
 router.route("/order-delete/:id").delete(verifyAdmin,order.delete)
 
 router.route("/order-payment/:id").put(verifyJwt,upload.any('photo'),order.payment)
 router.route("/order-status/:id").put(verifyJwt,order.approveOrRejectPayment)
-router.route("/order-history").get(verifyAdmin,order.historyOrder)
+router.route("/order-history").get(verifyAdmin,order.historyOrders)
+router.route("/order-history-per-user/:id").get(verifyJwt,cart.historyUser)
 
 module.exports = router

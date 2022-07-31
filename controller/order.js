@@ -95,7 +95,8 @@ exports.list = async (req, res, next) => {
                     },
                     item: {
                         $push: {
-                            categories: "$item.categories"
+                            categories: "$item.categories",
+                            quantity:"$products.quantity"
                         }
                     }
                 }
@@ -141,7 +142,8 @@ exports.list = async (req, res, next) => {
                     },
                     item: {
                         $push: {
-                            categories: "$item.categories"
+                            categories: "$item.categories",
+                            quantity:"$products.quantity"
                         }
                     }
                 }
@@ -200,7 +202,8 @@ exports.orderOne = async (req, res, next) => {
                     },
                     item: {
                         $push: {
-                            categories: "$item.categories"
+                            categories: "$item.categories",
+                            quantity:"$products.quantity"
                         }
                     }
                 }
@@ -239,7 +242,7 @@ exports.update = async (req, res, next) => {
         result.buktiPayment = uploadCloudinary.secure_url
         result.amount = req.body.amount
         result.address = req.body.address
-      
+
         const update = await Order.findByIdAndUpdate(req.params.id, {
             $set: result
         })
@@ -300,7 +303,7 @@ exports.approveOrRejectPayment = async (req, res, next) => {
     }
 }
 
-exports.historyOrder = async (req, res, next) => {
+exports.historyOrders = async (req, res, next) => {
     try {
 
         const history = req.query.status ? await Order.aggregate([
@@ -339,7 +342,7 @@ exports.historyOrder = async (req, res, next) => {
                         email: "$dataUser.email",
                         amount: "$amount"
                     },
-                    history: { $push: "$$ROOT" }
+                    history: { $push: {categories: "$item.categories",quantity:"$products.quantity"} }
                 }
             },
             {
@@ -349,7 +352,8 @@ exports.historyOrder = async (req, res, next) => {
                     "_id.email": 1,
                     "field": 1,
                     "_id.amount": 1,
-                    "history.item.categories": 1
+                    "history.quantity":1,
+                    "history.categories": 1
                 }
             },
             {
@@ -360,7 +364,7 @@ exports.historyOrder = async (req, res, next) => {
                         email: "$_id.email"
                     },
                     amountTotal: { $sum: "$_id.amount" },
-                    "history": { $push: "$history.item.categories" }
+                    "history": { $push: "$history" }
                 }
             },
             {
@@ -414,6 +418,96 @@ exports.historyOrder = async (req, res, next) => {
                         email: "$dataUser.email",
                         amount: "$amount"
                     },
+                    history: { $push: {categories: "$item.categories",quantity:"$products.quantity"} }
+                }
+            },
+            {
+                $project: {
+                    "_id.userId": 1,
+                    "_id.username": 1,
+                    "_id.email": 1,
+                    "field": 1,
+                    "_id.amount": 1,
+                    "history.quantity":1,
+                    "history.categories": 1
+                }
+            },
+            {
+                $group: {
+                    _id: {
+                        userId: "$_id.userId",
+                        username: "$_id.username",
+                        email: "$_id.email"
+                    },
+                    amountTotal: { $sum: "$_id.amount" },
+                    "history": { $push: "$history" }
+                }
+            },
+            {
+                $project: {
+                    "_id.userId": 1,
+                    "_id.username": 1,
+                    "_id.email": 1,
+                    "amountTotal": 1,
+                    "data": {
+                        $reduce: {
+                            "input": "$history",
+                            "initialValue": [],
+                            "in": { $setUnion: ["$$value", "$$this"] }
+                        }
+                    }
+                }
+            }
+        ])
+        res.status(200).json({
+            data: history,
+            message: "success get history many users",
+            status: 200
+        })
+    } catch (err) {
+        console.log(err)
+        return next(new CustomError('Something went wrong, please try again later!', 500))
+    }
+}
+
+exports.historyOrder = async (req, res, next) => {
+    try {
+
+        const history = await Order.aggregate([
+            {
+                $lookup: {
+                    from: "users",
+                    let: { "userObjId": { "$toObjectId": "$userId" } },
+                    pipeline: [
+                        { $match: { $expr: { $eq: ["$_id", "$$userObjId"] } } },
+                        { $project: { "username": 1, "email": 1 } }
+                    ],
+                    as: "dataUser",
+                }
+            },
+            { $unwind: "$dataUser" },
+            { $unwind: "$products" },
+            {
+                $lookup: {
+                    "from": "products",
+                    "let": { "productId": { "$toObjectId": "$products.categoryId" } },
+                    "pipeline": [
+                        { $unwind: "$categories" },
+                        { $match: { $expr: { $eq: ["$$productId", "$categories._id"] } } },
+                        { $project: { "categories": 1 } }
+                    ],
+                    "as": "item"
+                }
+            },
+            { $unwind: "$item" },
+            {
+                $group: {
+                    _id: {
+                        userId: "$userId",
+                        username: "$dataUser.username",
+                        email: "$dataUser.email",
+                        amount: "$amount"
+                    },
                     history: { $push: "$$ROOT" }
                 }
             },
@@ -452,7 +546,9 @@ exports.historyOrder = async (req, res, next) => {
                         }
                     }
                 }
-            }
+            },
+            { $match: { "_id.userId": req.params.id } }
+
         ])
         res.status(200).json({
             data: history,

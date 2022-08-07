@@ -307,15 +307,15 @@ exports.delete = async (req, res, next) => {
 
 exports.incQuantity = async (req, res, next) => {
     try {
-        const lastCartId = await Cart.find({ userId: req.body.userId }).sort({ createdAt: -1 })
+        const lastCartId = await Cart.find({ userId:new moongose.Types.ObjectId(req.body.userId) }).sort({ createdAt: -1 })
 
         const updateQuantity = await Cart.updateOne({
             _id: lastCartId[0]._id,
-            userId: req.body.userId,
-            active: true,
+            userId: new moongose.Types.ObjectId(req.body.userId),
+            active: false,
             products: {
                 $elemMatch: {
-                    categoryId: req.body.products.categoryId
+                    categoryId:new moongose.Types.ObjectId(req.body.products.categoryId)
                 }
             }
         }
@@ -342,8 +342,8 @@ exports.decQuantity = async (req, res, next) => {
             { $unwind: "$products" },
             {
                 $match: {
-                    "userId": req.body.userId,
-                    "products.categoryId": req.body.products.categoryId
+                    "userId": new moongose.Types.ObjectId(req.body.userId),
+                    "products.categoryId": new moongose.Types.ObjectId(req.body.products.categoryId)
                 }
             },
             { $sort: { createdAt: -1 } }
@@ -354,11 +354,11 @@ exports.decQuantity = async (req, res, next) => {
         if (quantity == 1) {
             const updateQuantity = await Cart.updateOne({
                 _id: lastCartId,
-                userId: req.body.userId,
-                active: true,
+                userId:new moongose.Types.ObjectId(req.body.userId) ,
+                active: false,
                 products: {
                     $elemMatch: {
-                        categoryId: req.body.products.categoryId
+                        categoryId: new moongose.Types.ObjectId(req.body.products.categoryId)
                     }
                 }
             }
@@ -373,10 +373,10 @@ exports.decQuantity = async (req, res, next) => {
         else {
             const updateQuantity = await Cart.updateOne({
                 _id: lastCartId,
-                userId: req.body.userId,
+                userId: new moongose.Types.ObjectId(req.body.userId),
                 products: {
                     $elemMatch: {
-                        categoryId: req.body.products.categoryId
+                        categoryId: new moongose.Types.ObjectId(req.body.products.categoryId)
                     }
                 }
             }

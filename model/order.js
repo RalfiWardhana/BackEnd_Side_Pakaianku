@@ -1,13 +1,10 @@
 const moongose = require('mongoose')
 
 const cartSchema = new moongose.Schema({
-    userId: { type: String, required: true},
+    userId: { type: moongose.Schema.Types.ObjectId, ref: 'users' },
     products:[
         {
-            categoryId:{
-                type:String,
-                default:false
-            },
+            categoryId:{ type: moongose.Schema.Types.ObjectId, ref: 'products' },
             quantity:{
                 type:Number,
                 default:1

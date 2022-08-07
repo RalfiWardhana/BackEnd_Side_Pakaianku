@@ -5,8 +5,7 @@ const { CustomError } = require('../helper/errorHandler')
 
 exports.add = async (req, res, next) => {
     try {
-        const userCart = await Cart.findOne({ userId: req.body.userId, active: true })
-        console.log(userCart.products)
+        const userCart = await Cart.findOne({ userId: new moongose.Types.ObjectId(req.body.userId), active: true })
         if (userCart.products.length > 0) {
 
             let objCategories = {}
@@ -14,7 +13,7 @@ exports.add = async (req, res, next) => {
             objCategories.quantity = req.body.products.quantity
             console.log(objCategories)
             const updateCart = await Cart.updateOne({
-                userId: req.body.userId, active: true
+                userId: new moongose.Types.ObjectId(req.body.userId), active: true
             }, {
                 $push: {
                     products: objCategories
@@ -312,7 +311,7 @@ exports.incQuantity = async (req, res, next) => {
         const updateQuantity = await Cart.updateOne({
             _id: lastCartId[0]._id,
             userId: new moongose.Types.ObjectId(req.body.userId),
-            active: false,
+            active: true,
             products: {
                 $elemMatch: {
                     categoryId:new moongose.Types.ObjectId(req.body.products.categoryId)
@@ -355,7 +354,7 @@ exports.decQuantity = async (req, res, next) => {
             const updateQuantity = await Cart.updateOne({
                 _id: lastCartId,
                 userId:new moongose.Types.ObjectId(req.body.userId) ,
-                active: false,
+                active: true,
                 products: {
                     $elemMatch: {
                         categoryId: new moongose.Types.ObjectId(req.body.products.categoryId)
